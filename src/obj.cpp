@@ -5,7 +5,6 @@ OBJ::OBJ(std::string path) {
     if (ifs.is_open()) {
         std::string line;
         std::stringstream ss;
-        int cnt = 100;
         while (std::getline(ifs, line)) {
             if (line.empty() || line[0] == '#') continue;
 
@@ -31,7 +30,6 @@ OBJ::OBJ(std::string path) {
                     f.vertex.emplace_back(vertex[i]);
                 }
                 face.emplace_back(f);
-                if (--cnt == 0) break;
             }
 
             ss.clear();

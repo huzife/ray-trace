@@ -4,6 +4,8 @@
 #include <unordered_set>
 #include <memory>
 #include <numeric>
+#include <thread>
+#include <atomic>
 #include "basic.h"
 #include "renderer.h"
 #include "mesh.h"
@@ -24,14 +26,14 @@ public:
 
     Light(const Vector3D &i) : intensity(i) {}
 
-    virtual Vector3D getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, const Vector3D &V) = 0;
+    virtual Vector3D getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) = 0;
 };
 
 class AmbientLight : public Light {
 public:
     AmbientLight(const Vector3D &i) : Light(i) {}
 
-    Vector3D getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, const Vector3D &V) override;
+    Vector3D getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) override;
 };
 
 class PointLight : public Light {
@@ -40,7 +42,7 @@ public:
 
     PointLight(const Vector3D &i, const Point &p) : Light(i), position(p) {}
 
-    Vector3D getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, const Vector3D &V) override;
+    Vector3D getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) override;
 };
 
 // camera
@@ -65,6 +67,7 @@ public:
 
 using ObjectSet = std::unordered_set<std::shared_ptr<Object>>;
 using LightSet = std::unordered_set<std::shared_ptr<Light>>;
+using HitInfo = std::pair<Hit, std::shared_ptr<Object>>;
 
 // scene
 class Scene : public std::enable_shared_from_this<Scene> {
@@ -77,7 +80,7 @@ public:
     std::shared_ptr<AmbientLight> ambient_light;
     std::shared_ptr<Camera> camera;
 
-    std::shared_ptr<Object> hit_object;
+    // std::shared_ptr<Object> hit_object;
 
     Vector3D background;
 
@@ -89,7 +92,7 @@ public:
 
     void delLight(std::shared_ptr<Light> light);
 
-    Hit getIntersection(Ray &ray, bool change_hit_object = true);
+    HitInfo getIntersection(Ray &ray, bool change_hit_object = true);
 
     Vector3D rayTrace(Ray &ray, int depth);
 

@@ -21,19 +21,14 @@ bool Camera::checkUpAndRight() {
     return true;
 }
 
-Vector3D AmbientLight::getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, const Vector3D &V) {
+Vector3D AmbientLight::getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) {
     if (Vector3D::dot(V, std::get<Vector3D>(hit)) > 0) return Vector3D::zero;
-    auto object = scene->hit_object;
-    auto material = object->mesh_renderer.material;
     Vector3D ret = material->Ka * intensity;
 
     return ret;
 }
 
-Vector3D PointLight::getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, const Vector3D &V) {
-    auto object = scene->hit_object;
-    auto material = object->mesh_renderer.material;
-
+Vector3D PointLight::getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) {
     // hit point and normal
     Point hit_point = std::get<Point>(hit);
     Vector3D hit_normal = std::get<Vector3D>(hit);
@@ -47,7 +42,7 @@ Vector3D PointLight::getColor(const std::shared_ptr<Scene> &scene, const Hit &hi
 
     // shadow check
     Ray detect_ray(hit_point, L);
-    Hit detect_hit = scene->getIntersection(detect_ray, false);
+    Hit detect_hit = scene->getIntersection(detect_ray, false).first;
     float t_hit = std::get<float>(detect_hit);
     if (!fequal(t_hit, -1) && t_hit < t_max) return Vector3D::zero;
 
@@ -109,9 +104,9 @@ void Scene::delLight(std::shared_ptr<Light> light) {
     lights.erase(light);
 }
 
-Hit Scene::getIntersection(Ray &ray, bool change_hit_object) {
+HitInfo Scene::getIntersection(Ray &ray, bool change_hit_object) {
     // calculate the nearest hit
-    if (change_hit_object) hit_object = nullptr;
+    std::shared_ptr<Object> hit_object = nullptr;
     Hit hit(Point::none, Vector3D::zero, -1);
     float dist = -1;
     for (auto &o : objects) {
@@ -121,38 +116,43 @@ Hit Scene::getIntersection(Ray &ray, bool change_hit_object) {
         if (fequal(now, -1)) continue;
 
         if (fequal(dist, -1) || now < dist) {
-            if (change_hit_object) hit_object = o;
+            hit_object = o;
             hit = temp_hit;
             dist = now;
         }
     }
 
-    return hit;
+    return {hit, hit_object};
 }
 
 Vector3D Scene::rayTrace(Ray &ray, int depth) {
     if (depth > Scene::maxdepth) return Vector3D();
 
     // calculate the nearest hit
-    Hit hit = getIntersection(ray);
+    // HitInfo hit_info = getIntersection(ray);
+    Hit hit;
+    std::shared_ptr<Object> hit_object;
+    std::tie<Hit, std::shared_ptr<Object>>(hit, hit_object) = getIntersection(ray);
 
     // no intersection point, return background
     if (fequal(std::get<float>(hit), -1)) return background;
 
-    // local color(use blinn-phong model)
     Vector3D color;
-    color = ambient_light->getColor(shared_from_this(), hit, ray.dir);
+    auto hit_material = hit_object->mesh_renderer.material;
+
+    // local color(use blinn-phong model)
+    color = ambient_light->getColor(shared_from_this(), hit, hit_material, ray.dir);
     for (auto &l : lights) {
-        color = color + l->getColor(shared_from_this(), hit, ray.dir);
+        color = color + l->getColor(shared_from_this(), hit, hit_material, ray.dir);
     }
 
-    auto type = hit_object->mesh_renderer.material->type;
+    auto type = hit_material->type;
     Vector3D hit_normal = std::get<Vector3D>(hit);
 
     if (type != Material::Type::ROUGH) {
         Point hit_point = std::get<Point>(hit);
-        Vector3D F0 = hit_object->mesh_renderer.material->F0;
-        float n = hit_object->mesh_renderer.material->n;
+        Vector3D F0 = hit_material->F0;
+        float n = hit_material->n;
         float cos_val = -Vector3D::dot(ray.dir, hit_normal);
         bool back_side = cos_val < 0;
         if (back_side) {
@@ -186,6 +186,33 @@ Vector3D Scene::rayTrace(Ray &ray, int depth) {
 void Scene::render(unsigned char *pixel, int windowWidth, int windowHeight) {
     camera->setPerspective(windowWidth, windowHeight);
 
+#if 0
+    int w = windowWidth / 2;
+    int h = windowHeight / 1;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 1; j++) {
+            std::thread t([&, i, j](){
+                for (int x = i * w; x < (i + 1) * w; x++) {
+                    for (int y = j * h; y < (j + 1) * h; y++) {
+                        Ray ray = camera->getRay(x, y, windowWidth, windowHeight);
+                        Vector3D color = rayTrace(ray, 0);
+
+                        // // write pixel
+                        int offset = y * windowWidth * 3 + x * 3;
+                        *(pixel + offset) = std::min(1.0f, color.x) * 255;
+                        *(pixel + offset + 1) = std::min(1.0f, color.y) * 255;
+                        *(pixel + offset + 2) = std::min(1.0f, color.z) * 255;
+                    }
+                }
+            });
+            threads.push_back(std::move(t));
+        }
+    }
+
+    for (auto &t : threads) t.join();
+#else
     for (int x = 0; x < windowWidth; x++) {
         for (int y = 0; y < windowHeight; y++) {
             Ray ray = camera->getRay(x, y, windowWidth, windowHeight);
@@ -198,4 +225,5 @@ void Scene::render(unsigned char *pixel, int windowWidth, int windowHeight) {
             *(pixel + offset + 2) = std::min(1.0f, color.z) * 255;
         }
     }
+#endif
 }

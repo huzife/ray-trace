@@ -1,3 +1,10 @@
 # Ray Tracing
+- this is a simple demo of ray tracing, implemented with opengl(freeglut)<br>
 
-this is a simple demo of ray tracing, implemented with opengl(freeglut)
+##usage:<br>
+create a build directory and entry it<br>
+```
+cmake ..
+make
+./main
+```

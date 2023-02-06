@@ -138,10 +138,4 @@ public:
 
 using Hit = std::tuple<Point, Vector3D, float>;
 
-// class Transform {
-// public:
-//     Point position;
-
-// };
-
 #endif // _BASIC_H

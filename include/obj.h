@@ -13,7 +13,7 @@ public:
     std::vector<Point> vertex;
     std::vector<Face> face;
 
-    OBJ(std::string path);
+    OBJ(std::string path, float x_offs = 0, float y_offs = 0, float z_offs = 0, float scale = 1);
 };
 
 #endif // _OBJ_H

@@ -2,6 +2,7 @@
 #define _OBJECTS_H
 
 #include <unordered_set>
+#include <functional>
 #include <memory>
 #include <numeric>
 #include <thread>
@@ -17,23 +18,30 @@ public:
     Renderer mesh_renderer;
 };
 
+using HitInfo = std::pair<Hit, std::shared_ptr<Object>>;
+
 class Scene;
 
 // light
 class Light {
 public:
+    std::shared_ptr<Scene> parent_scene;
+
+public:
     Vector3D intensity;
 
     Light(const Vector3D &i) : intensity(i) {}
 
-    virtual Vector3D getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) = 0;
+    void setParentScene(std::shared_ptr<Scene> scene);
+
+    virtual Vector3D getColor(const Hit &hit, std::shared_ptr<Object> hit_object, const Vector3D &V) = 0;
 };
 
 class AmbientLight : public Light {
 public:
     AmbientLight(const Vector3D &i) : Light(i) {}
 
-    Vector3D getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) override;
+    Vector3D getColor(const Hit &hit, std::shared_ptr<Object> hit_object, const Vector3D &V) override;
 };
 
 class PointLight : public Light {
@@ -42,7 +50,7 @@ public:
 
     PointLight(const Vector3D &i, const Point &p) : Light(i), position(p) {}
 
-    Vector3D getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) override;
+    Vector3D getColor(const Hit &hit, std::shared_ptr<Object> hit_object, const Vector3D &V) override;
 };
 
 // camera
@@ -65,22 +73,16 @@ public:
     Ray getRay(int x, int y, int windowWidth, int windowHeight);
 };
 
-using ObjectSet = std::unordered_set<std::shared_ptr<Object>>;
-using LightSet = std::unordered_set<std::shared_ptr<Light>>;
-using HitInfo = std::pair<Hit, std::shared_ptr<Object>>;
-
 // scene
 class Scene : public std::enable_shared_from_this<Scene> {
 public:
-    static constexpr int maxdepth = 10;
+    static constexpr int maxdepth = 5;
 
 public:
-    ObjectSet objects;
-    LightSet lights;
+    std::unordered_set<std::shared_ptr<Object>> objects;
+    std::unordered_set<std::shared_ptr<Light>> lights;
     std::shared_ptr<AmbientLight> ambient_light;
     std::shared_ptr<Camera> camera;
-
-    // std::shared_ptr<Object> hit_object;
 
     Vector3D background;
 
@@ -92,7 +94,9 @@ public:
 
     void delLight(std::shared_ptr<Light> light);
 
-    HitInfo getIntersection(Ray &ray, bool change_hit_object = true);
+    HitInfo getIntersection(Ray &ray);
+
+    bool underShadow(Ray &ray, float t_max);
 
     Vector3D rayTrace(Ray &ray, int depth);
 

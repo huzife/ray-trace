@@ -21,14 +21,18 @@ bool Camera::checkUpAndRight() {
     return true;
 }
 
-Vector3D AmbientLight::getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) {
+void Light::setParentScene(std::shared_ptr<Scene> scene) {
+    parent_scene = scene;
+}
+
+Vector3D AmbientLight::getColor(const Hit &hit, std::shared_ptr<Object> hit_object, const Vector3D &V) {
     if (Vector3D::dot(V, std::get<Vector3D>(hit)) > 0) return Vector3D::zero;
-    Vector3D ret = material->Ka * intensity;
+    Vector3D ret = hit_object->mesh_renderer.material->Ka * intensity;
 
     return ret;
 }
 
-Vector3D PointLight::getColor(const std::shared_ptr<Scene> &scene, const Hit &hit, std::shared_ptr<Material> material, const Vector3D &V) {
+Vector3D PointLight::getColor(const Hit &hit, std::shared_ptr<Object> hit_object, const Vector3D &V) {
     // hit point and normal
     Point hit_point = std::get<Point>(hit);
     Vector3D hit_normal = std::get<Vector3D>(hit);
@@ -42,9 +46,7 @@ Vector3D PointLight::getColor(const std::shared_ptr<Scene> &scene, const Hit &hi
 
     // shadow check
     Ray detect_ray(hit_point, L);
-    Hit detect_hit = scene->getIntersection(detect_ray, false).first;
-    float t_hit = std::get<float>(detect_hit);
-    if (!fequal(t_hit, -1) && t_hit < t_max) return Vector3D::zero;
+    if (parent_scene->underShadow(detect_ray, t_max)) return Vector3D::zero;
 
     // calculate cosA, A is the angle of L and n
     float a = Vector3D::dot(L, hit_normal);
@@ -55,6 +57,7 @@ Vector3D PointLight::getColor(const std::shared_ptr<Scene> &scene, const Hit &hi
     float b = Vector3D::dot(H, hit_normal) / H.magnitude();
 
     // diffuse and reflect
+    auto material = hit_object->mesh_renderer.material;
     Vector3D diffuse = material->Kd * intensity * a;
     Vector3D reflect = material->Ks * intensity * std::pow(b, material->shininess);
 
@@ -97,6 +100,7 @@ void Scene::delObject(std::shared_ptr<Object> object) {
 void Scene::addLight(std::shared_ptr<Light> light) {
     assert(std::dynamic_pointer_cast<AmbientLight>(light) == nullptr);
     lights.insert(light);
+    light->setParentScene(shared_from_this());
 }
 
 void Scene::delLight(std::shared_ptr<Light> light) {
@@ -104,7 +108,7 @@ void Scene::delLight(std::shared_ptr<Light> light) {
     lights.erase(light);
 }
 
-HitInfo Scene::getIntersection(Ray &ray, bool change_hit_object) {
+HitInfo Scene::getIntersection(Ray &ray) {
     // calculate the nearest hit
     std::shared_ptr<Object> hit_object = nullptr;
     Hit hit(Point::none, Vector3D::zero, -1);
@@ -125,59 +129,68 @@ HitInfo Scene::getIntersection(Ray &ray, bool change_hit_object) {
     return {hit, hit_object};
 }
 
+bool Scene::underShadow(Ray &ray, float t_max) {
+    Hit detect_hit = getIntersection(ray).first;
+    float t_hit = std::get<float>(detect_hit);
+
+    return !fequal(t_hit, -1) && t_hit < t_max;
+}
+
 Vector3D Scene::rayTrace(Ray &ray, int depth) {
     if (depth > Scene::maxdepth) return Vector3D();
 
     // calculate the nearest hit
-    // HitInfo hit_info = getIntersection(ray);
     Hit hit;
     std::shared_ptr<Object> hit_object;
-    std::tie<Hit, std::shared_ptr<Object>>(hit, hit_object) = getIntersection(ray);
+    std::tie(hit, hit_object) = getIntersection(ray);
 
     // no intersection point, return background
     if (fequal(std::get<float>(hit), -1)) return background;
 
     Vector3D color;
-    auto hit_material = hit_object->mesh_renderer.material;
 
     // local color(use blinn-phong model)
-    color = ambient_light->getColor(shared_from_this(), hit, hit_material, ray.dir);
+    color = ambient_light->getColor(hit, hit_object, ray.dir);
     for (auto &l : lights) {
-        color = color + l->getColor(shared_from_this(), hit, hit_material, ray.dir);
+        color = color + l->getColor(hit, hit_object, ray.dir);
     }
 
+    auto hit_material = hit_object->mesh_renderer.material;
     auto type = hit_material->type;
+    // if the material is rough, return the local color
+    if (type == Material::Type::ROUGH) return color;
+
+    Point hit_point = std::get<Point>(hit);
     Vector3D hit_normal = std::get<Vector3D>(hit);
+    Vector3D F0 = hit_material->F0;
+    float cos_val = -Vector3D::dot(ray.dir, hit_normal);
+    bool back_side = cos_val < 0;
+    if (back_side) {
+        cos_val = -cos_val;
+        hit_normal = hit_normal * -1;
+    }
 
-    if (type != Material::Type::ROUGH) {
-        Point hit_point = std::get<Point>(hit);
-        Vector3D F0 = hit_material->F0;
-        float n = hit_material->n;
-        float cos_val = -Vector3D::dot(ray.dir, hit_normal);
-        bool back_side = cos_val < 0;
-        if (back_side) {
-            cos_val = -cos_val;
-            hit_normal = hit_normal * -1;
-        }
+    // common version
+    Vector3D F = F0 + (Vector3D(1, 1, 1) - F0) * std::pow(1 - cos_val, 5);
 
-        Vector3D F = F0 + (Vector3D(1, 1, 1) - F0) * std::pow(1 - cos_val, 5); // common version
-        // Vector3D F = F0 + (Vector3D(1, 1, 1) - F0) * std::pow(2, (-5.55473 * cos_val - 6.98316) * cos_val); // UE4 version, said to be faster, but slower in test
+    // UE4 version, said to be faster, but slower in test
+    // Vector3D F = F0 + (Vector3D(1, 1, 1) - F0) * std::pow(2, (-5.55473 * cos_val - 6.98316) * cos_val);
 
-        // reflected_color
-        Vector3D reflect_dir = ray.dir + 2 * cos_val * hit_normal;
-        Ray reflected_ray(hit_point, reflect_dir);
-        color = color + F * rayTrace(reflected_ray, depth + 1);
+    // reflected_color
+    Vector3D reflect_dir = ray.dir + 2 * cos_val * hit_normal;
+    Ray reflected_ray(hit_point, reflect_dir);
+    color = color + F * rayTrace(reflected_ray, depth + 1);
 
-        // refracted_color
-        if (type == Material::Type::REFRACTIVE) {
-            float ratio = back_side ? n / Material::n_air : Material::n_air / n;
-            float temp = 1 - ratio * ratio * (1 - cos_val * cos_val);
-            if (temp >= 0) {
-                Vector3D refract_dir = ratio * (ray.dir + cos_val * hit_normal) - std::sqrt(temp) * hit_normal;
-                Ray refracted_ray(hit_point, refract_dir);
-                color = color + (Vector3D(1, 1, 1) - F) * rayTrace(refracted_ray, depth + 1);
-            }
-        }
+    // refracted_color
+    if (type != Material::Type::REFRACTIVE) return color;
+    
+    float n = hit_material->n;
+    float ratio = back_side ? n / Material::n_air : Material::n_air / n;
+    float temp = 1 - ratio * ratio * (1 - cos_val * cos_val);
+    if (temp >= 0) {
+        Vector3D refract_dir = ratio * (ray.dir + cos_val * hit_normal) - std::sqrt(temp) * hit_normal;
+        Ray refracted_ray(hit_point, refract_dir);
+        color = color + (Vector3D(1, 1, 1) - F) * rayTrace(refracted_ray, depth + 1);
     }
 
     return color;
@@ -186,14 +199,15 @@ Vector3D Scene::rayTrace(Ray &ray, int depth) {
 void Scene::render(unsigned char *pixel, int windowWidth, int windowHeight) {
     camera->setPerspective(windowWidth, windowHeight);
 
-#if 0
-    int w = windowWidth / 2;
+#ifdef MULTI_THREADS
+    std::cout << "enable multi-threads" << std::endl;
+    int w = windowWidth / 4;
     int h = windowHeight / 1;
     std::vector<std::thread> threads;
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 1; j++) {
-            std::thread t([&, i, j](){
+            std::thread t([&, i, j]() {
                 for (int x = i * w; x < (i + 1) * w; x++) {
                     for (int y = j * h; y < (j + 1) * h; y++) {
                         Ray ray = camera->getRay(x, y, windowWidth, windowHeight);

@@ -2,7 +2,7 @@
 - this is a simple demo of ray tracing, implemented with opengl(freeglut)<br>
 
 ## usage
-create a build directory and entry it<br>
+- create a build directory and entry it<br>
 ```
 cmake ..
 make

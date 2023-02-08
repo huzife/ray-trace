@@ -202,11 +202,11 @@ void Scene::render(unsigned char *pixel, int windowWidth, int windowHeight) {
 #ifdef MULTI_THREADS
     std::cout << "enable multi-threads" << std::endl;
     int w = windowWidth / 4;
-    int h = windowHeight / 1;
+    int h = windowHeight / 2;
     std::vector<std::thread> threads;
 
     for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 1; j++) {
+        for (int j = 0; j < 2; j++) {
             std::thread t([&, i, j]() {
                 for (int x = i * w; x < (i + 1) * w; x++) {
                     for (int y = j * h; y < (j + 1) * h; y++) {

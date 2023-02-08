@@ -1,7 +1,7 @@
 #include "mesh.h"
 
 /**
- *  sphere: (x - cx)^2 + (y - cy)^2 + (z - cz)^2 = r^2
+ *  sphere: (x - xc)^2 + (y - yc)^2 + (z - zc)^2 = r^2
  *  ray:    P(t) = start + t * dir(normalized)
  *
  *  -> At^2 + Bt + C = 0
@@ -9,10 +9,10 @@
 Hit Sphere::intersection(const Ray &ray) {
     float xd = ray.dir.x, yd = ray.dir.y, zd = ray.dir.z;
     float xp = ray.start.x, yp = ray.start.y, zp = ray.start.z;
-    float cx = center.x, cy = center.y, cz = center.z;
+    float xc = center.x, yc = center.y, zc = center.z;
     // float A = ray.dir.sqrMagnitude(); // calculator A, actually A == 1 because ray.dir is normalized
-    float B = 2 * (xd * (xp - cx) + yd * (yp - cy) + zd * (zp - cz));
-    float C = (xp - cx) * (xp - cx) + (yp - cy) * (yp - cy) + (zp - cz) * (zp - cz) - radius * radius;
+    float B = 2 * (xd * (xp - xc) + yd * (yp - yc) + zd * (zp - zc));
+    float C = (xp - xc) * (xp - xc) + (yp - yc) * (yp - yc) + (zp - zc) * (zp - zc) - radius * radius;
     float delta = B * B - 4 * C;
 
     // no intersection point
@@ -86,11 +86,9 @@ Hit Model::intersection(const Ray &ray) {
         bool inside = true;
         for (int i = 0; i < f.v_counts; i++) {
             Vector3D v = hit_point - f.vertex[i];
-            int last = (i + f.v_counts - 1) % f.v_counts;
             int next = (i + 1) % f.v_counts;
             Vector3D v1 = f.vertex[next] - f.vertex[i];
-            Vector3D v2 = f.vertex[last] - f.vertex[i];
-            if (Vector3D::dot(Vector3D::cross(v1, v), Vector3D::cross(v1, v2)) < 0) {
+            if (Vector3D::dot(Vector3D::cross(v1, v), n) < 0) {
                 inside = false;
                 break;
             }

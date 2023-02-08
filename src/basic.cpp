@@ -108,6 +108,11 @@ float Vector3D::signedAngle(const Vector3D &from, const Vector3D &to, const Vect
     return ret;
 }
 
+Vector3D Vector3D::mix(const Vector3D &v1, const Vector3D &v2, float p) {
+    assert(!(p < 0 || p > 1));
+    return v1 * (1 - p) + v2 * p;
+}
+
 // Angle
 float Angle::degToRad(float deg) {
     return deg * std::numbers::pi / 180;

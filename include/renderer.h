@@ -17,9 +17,10 @@ public:
     } type;
 
     Vector3D color;
-    int shininess; // convergence index of reflected lights [1, 128]
-    Vector3D F0;   // basic reflectivity
-    float n;       // index of refraction
+    int shininess;   // convergence index of reflected lights [1, 128]
+    float metalness; // index of metalness
+    Vector3D F0;     // basic reflectivity
+    float n;         // index of refraction
 
     Vector3D Ka; // Ambient coefficient
     Vector3D Kd; // Diffuse coefficient
@@ -30,16 +31,16 @@ public:
     Material &operator=(const Material &) = default;
 
     // rough
-    Material(const Vector3D &c, float d, float s, int shine)
-        : type(Type::ROUGH), color(c), shininess(shine), Ka(color), Kd(d * color), Ks(s * color) {}
+    Material(const Vector3D &c, float d, float s, int shine, float metal)
+        : type(Type::ROUGH), color(c), shininess(shine), metalness(metal), Ka(0.5 * color), Kd(d * color), Ks(s * color) {}
 
     // reflective
-    Material(const Vector3D &c, float d, float s, int shine, const Vector3D &F0)
-        : type(Type::REFLECTIVE), color(c), shininess(shine), F0(F0), Ka(color), Kd(d * color), Ks(s * color) {}
+    Material(const Vector3D &c, float d, float s, int shine, float metal, const Vector3D &F0)
+        : type(Type::REFLECTIVE), color(c), shininess(shine), metalness(metal), F0(Vector3D::mix(F0, color, metalness)), Ka(0.5 * color), Kd(d * color), Ks(s * color) {}
 
     // refractive
-    Material(const Vector3D &c, float d, float s, int shine, const Vector3D &F0, float n)
-        : type(Type::REFRACTIVE), color(c), shininess(shine), n(n), F0(F0), Ka(color), Kd(d * color), Ks(s * color) {}
+    Material(const Vector3D &c, float d, float s, int shine, float metal, const Vector3D &F0, float n)
+        : type(Type::REFRACTIVE), color(c), shininess(shine), metalness(metal), n(n), F0(Vector3D::mix(F0, color, metalness)), Ka(0.5 * color), Kd(d * color), Ks(s * color) {}
 };
 
 class Texture {

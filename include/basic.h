@@ -67,6 +67,8 @@ public:
 
     static float angle(const Vector3D &v1, const Vector3D &v2);                              // calculate the angle between two vectors (0 to 180)
     static float signedAngle(const Vector3D &from, const Vector3D &to, const Vector3D &dir); // calculate the angle between two vectors (-180 to 180)
+
+    static Vector3D mix(const Vector3D &v1, const Vector3D &v2, float p); // linear mix algorithm
 };
 
 // this is a utils class, help to implement some operation of angle

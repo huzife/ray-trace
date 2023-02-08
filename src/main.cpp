@@ -21,44 +21,52 @@ void init() {
 
     auto sphere1 = std::make_shared<Object>();
     sphere1->mesh_filter = std::make_shared<Sphere>(Point(-2, -2, 1.5), 1.5);
-    sphere1->mesh_renderer.material = std::make_shared<Material>(Vector3D(0, 1, 0), 0.8, 0.2, 32);
+    sphere1->mesh_renderer.material = std::make_shared<Material>(Vector3D(0, 1, 0), 0.8, 0.2, 32, 0);
 
     auto sphere2 = std::make_shared<Object>();
     sphere2->mesh_filter = std::make_shared<Sphere>(Point(-3, 2, 1.8), 1.8);
-    sphere2->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.86, 0.86, 0.86), 0.4, 0.8, 128, Vector3D(0.65, 0.65, 0.65));
+    sphere2->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.86, 0.86, 0.86), 0.4, 0.8, 128, 1, Vector3D(0.65, 0.65, 0.65));
 
     auto sphere3 = std::make_shared<Object>();
     sphere3->mesh_filter = std::make_shared<Sphere>(Point(0.5, -2.5, 0.7), 0.7);
-    sphere3->mesh_renderer.material = std::make_shared<Material>(Vector3D(1, 0, 0), 0.6, 0.7, 128);
+    sphere3->mesh_renderer.material = std::make_shared<Material>(Vector3D(1, 0, 0), 0.6, 0.7, 128, 0);
 
     auto sphere4 = std::make_shared<Object>();
     sphere4->mesh_filter = std::make_shared<Sphere>(Point(1.5, -0.1, 0.75), 0.75);
-    sphere4->mesh_renderer.material = std::make_shared<Material>(Vector3D(1, 1, 1), 0.35, 0.8, 128, Vector3D(0.02, 0.02, 0.02), 1.015);
+    sphere4->mesh_renderer.material = std::make_shared<Material>(Vector3D(1, 1, 1), 0.35, 0.8, 128, 0, Vector3D(0.02, 0.02, 0.02), 1.015);
 
     std::vector<std::shared_ptr<Object>> plane(6);
     for (auto &p : plane) p = std::make_shared<Object>();
     plane[0]->mesh_filter = std::make_shared<Plane>(Point(-10, -10, 0), Vector3D(20, 0, 0), Vector3D(0, 20, 0));
-    plane[0]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.8, 0.8, 0.8), 0.7, 0.5, 32, Vector3D(0.02, 0.02, 0.02), 1.5);
+    plane[0]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.8, 0.8, 0.8), 0.7, 0.5, 32, 0, Vector3D(0.02, 0.02, 0.02));
 
     plane[1]->mesh_filter = std::make_shared<Plane>(Point(-10, -10, 6), Vector3D(0, 20, 0), Vector3D(20, 0, 0));
-    plane[1]->mesh_renderer.material = std::make_shared<Material>(Vector3D(1, 1, 1), 0.8, 0.3, 32);
+    plane[1]->mesh_renderer.material = std::make_shared<Material>(Vector3D(1, 1, 1), 1, 0.1, 1, 0);
 
     plane[2]->mesh_filter = std::make_shared<Plane>(Point(-10, -10, 0), Vector3D(0, 20, 0), Vector3D(0, 0, 6));
-    plane[2]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.5, 0.5, 0.79), 0.8, 0.3, 32);
+    plane[2]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.5, 0.5, 0.79), 0.8, 0.3, 32, 0);
 
     plane[3]->mesh_filter = std::make_shared<Plane>(Point(10, -10, 0), Vector3D(-20, 0, 0), Vector3D(0, 0, 6));
-    plane[3]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.8, 0.6, 0.8), 0.8, 0.3, 32);
+    plane[3]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.8, 0.6, 0.8), 0.8, 0.3, 32, 0);
 
     plane[4]->mesh_filter = std::make_shared<Plane>(Point(-10, 10, 0), Vector3D(20, 0, 0), Vector3D(0, 0, 6));
-    plane[4]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.8, 0.6, 0.8), 0.8, 0.3, 32);
+    plane[4]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.8, 0.6, 0.8), 0.8, 0.3, 32, 0);
     
     plane[5]->mesh_filter = std::make_shared<Plane>(Point(10, -10, 0), Vector3D(0, 0, 6), Vector3D(0, 20, 0));
-    plane[5]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.5, 0.5, 0.79), 0.8, 0.3, 32);
+    plane[5]->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.5, 0.5, 0.79), 0.8, 0.3, 32, 0);
+
+    auto water = std::make_shared<Object>();
+    water->mesh_filter = std::make_shared<Plane>(Point(-10, -10, 0.4), Vector3D(20, 0, 0), Vector3D(0, 20, 0));
+    water->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.68, 0.87, 0.89), 0.4, 0.5, 32, 0, Vector3D(0.02, 0.02, 0.02), 1.33);
+
+    auto wall = std::make_shared<Object>();
+    wall->mesh_filter = std::make_shared<Plane>(Point(-5, -10, 0), Vector3D(0, 20, 0), Vector3D(0, 0, 20));
+    wall->mesh_renderer.material = std::make_shared<Material>(Vector3D(1, 1, 1), 0.4, 0.5, 32, 0, Vector3D(0.02, 0.02, 0.02), 1);
 
     OBJ obj1("../model/model.obj", 1, 2, 0, 1.75);
     auto model1 = std::make_shared<Object>();
     model1->mesh_filter = std::make_shared<Model>(obj1);
-    model1->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.80, 0.69, 0.49), 0.8, 0.5, 64);
+    model1->mesh_renderer.material = std::make_shared<Material>(Vector3D(0.80, 0.69, 0.49), 0.8, 0.5, 64, 0);
 
     auto model2 = std::make_shared<Object>();
     auto m = std::make_shared<Model>();
@@ -75,7 +83,7 @@ void init() {
     m->face.emplace_back(f3);
     m->face.emplace_back(f4);
     model2->mesh_filter = m;
-    model2->mesh_renderer.material = std::make_shared<Material>(Vector3D(1, 1, 0), 0.7, 0.9, 128, Vector3D(0.85, 0.83, 0.79));
+    model2->mesh_renderer.material = std::make_shared<Material>(Vector3D(1, 1, 0), 0.7, 0.9, 128, 0.8, Vector3D(0.85, 0.83, 0.79));
 
     s = std::make_shared<Scene>();
     // lights
@@ -94,6 +102,9 @@ void init() {
     s->addObject(plane[3]);
     s->addObject(plane[4]);
     s->addObject(plane[5]);
+    // s->addObject(water);
+    // s->addObject(wall);
+    
     s->addObject(model1);
     // s->addObject(model2);
 

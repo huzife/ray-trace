@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(rayTrace VERSION 0.1)
 set(CMAKE_CXX_STANDARD 20)
+set(FREEGLUT_PATH D:/Develop/graphics/opengl/freeglut) # freeglut root path
 
 include_directories(include)
-include_directories(D:/DevelopTools/opengl/freeglut/include) # freeglut include directory
+include_directories(${FREEGLUT_PATH}/include) # freeglut include directory
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     # add_compile_options(-std=c++20)
@@ -12,7 +13,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options(-DMULTI_THREADS)
 endif(CMAKE_COMPILER_IS_GNUCXX)
 
-link_directories(D:/DevelopTools/opengl/freeglut/bin) # freeglut libraries directory
+link_directories(${FREEGLUT_PATH}/bin) # freeglut libraries directory
 
 add_executable(main
     src/main.cpp
